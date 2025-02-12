@@ -1,12 +1,14 @@
-import { Profile, User } from "@shared/schema";
+import { Profile } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
+import { Loader2 } from "lucide-react";
 
 interface ProfileViewerProps {
   userId: number;
@@ -15,8 +17,18 @@ interface ProfileViewerProps {
 }
 
 export default function ProfileViewer({ userId, isOpen, onClose }: ProfileViewerProps) {
-  const { data: profile } = useQuery<Profile>({
+  const { data: profile, isLoading } = useQuery<Profile>({
     queryKey: [`/api/profiles/${userId}`],
+    queryFn: async () => {
+      const res = await fetch(`/api/profiles/${userId}`);
+      if (!res.ok) {
+        if (res.status === 404) {
+          return null;
+        }
+        throw new Error("Failed to fetch profile");
+      }
+      return res.json();
+    },
     enabled: isOpen,
   });
 
@@ -25,9 +37,16 @@ export default function ProfileViewer({ userId, isOpen, onClose }: ProfileViewer
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Applicant Profile</DialogTitle>
+          <DialogDescription>
+            Review the applicant's professional background and experience
+          </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[80vh] px-1">
-          {profile ? (
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : profile ? (
             <div className="space-y-6">
               <div>
                 <h3 className="font-semibold mb-2">Professional Headline</h3>
@@ -74,9 +93,25 @@ export default function ProfileViewer({ userId, isOpen, onClose }: ProfileViewer
                   ))}
                 </ul>
               </div>
+
+              {profile.resumeUrl && (
+                <div>
+                  <h3 className="font-semibold mb-2">Resume</h3>
+                  <a 
+                    href={profile.resumeUrl} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    View Resume
+                  </a>
+                </div>
+              )}
             </div>
           ) : (
-            <p className="text-muted-foreground">No profile information available.</p>
+            <p className="text-muted-foreground py-4">
+              No profile information available. The applicant has not created their profile yet.
+            </p>
           )}
         </ScrollArea>
       </DialogContent>

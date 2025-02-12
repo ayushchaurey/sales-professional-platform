@@ -101,7 +101,7 @@ export default function JobCard({ job, application, userRole }: JobCardProps) {
           </div>
         )}
       </CardFooter>
-      {application && (
+      {application && showProfile && (
         <ProfileViewer
           userId={application.salesId}
           isOpen={showProfile}

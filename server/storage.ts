@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -107,10 +107,12 @@ export class DatabaseStorage implements IStorage {
 
     const jobIds = companyJobs.map(job => job.id);
 
+    if (jobIds.length === 0) return [];
+
     return db
       .select()
       .from(applications)
-      .where(eq(applications.jobId, jobIds[0])); // TODO: Add support for multiple jobs
+      .where(inArray(applications.jobId, jobIds));
   }
 
   // Profile methods
