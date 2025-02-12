@@ -24,6 +24,7 @@ export interface IStorage {
   getProfile(userId: number): Promise<Profile | undefined>;
   createProfile(userId: number, profile: Partial<InsertProfile>): Promise<Profile>;
   updateProfile(userId: number, profile: Partial<InsertProfile>): Promise<Profile | undefined>;
+  getSalesProfiles(): Promise<Profile[]>; // Added method
 
   sessionStore: session.Store;
 }
@@ -145,6 +146,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(profiles.userId, userId))
       .returning();
     return updatedProfile;
+  }
+
+  async getSalesProfiles() { // Added method
+    return db
+      .select()
+      .from(profiles)
+      .innerJoin(users, eq(profiles.userId, users.id))
+      .where(eq(users.role, "sales"));
   }
 }
 

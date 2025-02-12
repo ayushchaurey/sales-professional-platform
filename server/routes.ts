@@ -156,6 +156,17 @@ export function registerRoutes(app: Express): Server {
     res.json(profile);
   });
 
+  // Add this new endpoint after the existing profile routes
+  app.get("/api/profiles/sales", async (req, res) => {
+    if (!req.user) return res.status(401).send("Unauthorized");
+    if (req.user.role !== "company") {
+      return res.status(403).send("Only companies can view sales profiles");
+    }
+
+    const salesProfiles = await storage.getSalesProfiles();
+    res.json(salesProfiles);
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
