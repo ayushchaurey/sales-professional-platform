@@ -31,17 +31,17 @@ export default function ProfilePage() {
 
   const form = useForm({
     resolver: zodResolver(insertProfileSchema.partial()),
-    defaultValues: profile || {
-      headline: "",
-      summary: "",
-      experience: [],
-      education: [],
-      skills: [],
-      achievements: [],
-      website: "",
-      industry: "",
-      companySize: "",
-      foundedYear: "",
+    defaultValues: {
+      headline: profile?.headline ?? "",
+      summary: profile?.summary ?? "",
+      experience: profile?.experience ?? [],
+      education: profile?.education ?? [],
+      skills: profile?.skills ?? [],
+      achievements: profile?.achievements ?? [],
+      website: profile?.website ?? "",
+      industry: profile?.industry ?? "",
+      companySize: profile?.companySize ?? "",
+      foundedYear: profile?.foundedYear ?? "",
     },
   });
 
@@ -183,14 +183,14 @@ export default function ProfilePage() {
                     <FormField
                       control={form.control}
                       name="experience"
-                      render={({ field }) => (
+                      render={({ field: { value = [], onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>Work Experience</FormLabel>
                           <FormControl>
                             <Textarea 
-                              {...field} 
-                              value={field.value?.join('\n')}
-                              onChange={e => field.onChange(e.target.value.split('\n'))}
+                              {...field}
+                              value={value.join('\n')}
+                              onChange={e => onChange(e.target.value.split('\n'))}
                               placeholder="List your work experience (one per line)" 
                             />
                           </FormControl>
@@ -202,14 +202,14 @@ export default function ProfilePage() {
                     <FormField
                       control={form.control}
                       name="education"
-                      render={({ field }) => (
+                      render={({ field: { value = [], onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>Education</FormLabel>
                           <FormControl>
                             <Textarea 
                               {...field}
-                              value={field.value?.join('\n')}
-                              onChange={e => field.onChange(e.target.value.split('\n'))}
+                              value={value.join('\n')}
+                              onChange={e => onChange(e.target.value.split('\n'))}
                               placeholder="List your education (one per line)" 
                             />
                           </FormControl>
@@ -221,14 +221,14 @@ export default function ProfilePage() {
                     <FormField
                       control={form.control}
                       name="skills"
-                      render={({ field }) => (
+                      render={({ field: { value = [], onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>Skills</FormLabel>
                           <FormControl>
                             <Textarea 
                               {...field}
-                              value={field.value?.join('\n')}
-                              onChange={e => field.onChange(e.target.value.split('\n'))}
+                              value={value.join('\n')}
+                              onChange={e => onChange(e.target.value.split('\n'))}
                               placeholder="List your skills (one per line)" 
                             />
                           </FormControl>
@@ -240,14 +240,14 @@ export default function ProfilePage() {
                     <FormField
                       control={form.control}
                       name="achievements"
-                      render={({ field }) => (
+                      render={({ field: { value = [], onChange, ...field } }) => (
                         <FormItem>
                           <FormLabel>Achievements</FormLabel>
                           <FormControl>
                             <Textarea 
                               {...field}
-                              value={field.value?.join('\n')}
-                              onChange={e => field.onChange(e.target.value.split('\n'))}
+                              value={value.join('\n')}
+                              onChange={e => onChange(e.target.value.split('\n'))}
                               placeholder="List your achievements (one per line)" 
                             />
                           </FormControl>
