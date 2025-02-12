@@ -156,15 +156,20 @@ export function registerRoutes(app: Express): Server {
     res.json(profile);
   });
 
-  // Add this new endpoint after the existing profile routes
+  // Update the profiles endpoint to include user data
   app.get("/api/profiles/sales", async (req, res) => {
     if (!req.user) return res.status(401).send("Unauthorized");
     if (req.user.role !== "company") {
       return res.status(403).send("Only companies can view sales profiles");
     }
 
-    const salesProfiles = await storage.getSalesProfiles();
-    res.json(salesProfiles);
+    try {
+      const salesProfiles = await storage.getSalesProfiles();
+      res.json(salesProfiles);
+    } catch (error) {
+      console.error("Error fetching sales profiles:", error);
+      res.status(500).send("Failed to fetch sales profiles");
+    }
   });
 
   const httpServer = createServer(app);

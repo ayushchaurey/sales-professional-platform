@@ -10,6 +10,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Globe, Building2, Users, Calendar } from "lucide-react";
 
+interface ExtendedProfile extends Profile {
+  userLocation?: string;
+}
+
 interface ProfileViewerProps {
   userId: number;
   isOpen: boolean;
@@ -18,7 +22,7 @@ interface ProfileViewerProps {
 }
 
 export default function ProfileViewer({ userId, isOpen, onClose, role }: ProfileViewerProps) {
-  const { data: profile, isLoading } = useQuery<Profile>({
+  const { data: profile, isLoading } = useQuery<ExtendedProfile>({
     queryKey: [`/api/profiles/${userId}`],
     queryFn: async () => {
       const res = await fetch(`/api/profiles/${userId}`);
@@ -39,7 +43,7 @@ export default function ProfileViewer({ userId, isOpen, onClose, role }: Profile
         <DialogHeader>
           <DialogTitle>{role === "company" ? "Company Profile" : "Professional Profile"}</DialogTitle>
           <DialogDescription>
-            {role === "company" 
+            {role === "company"
               ? "Learn more about this company"
               : "Review the applicant's professional background and experience"}
           </DialogDescription>
@@ -67,9 +71,9 @@ export default function ProfileViewer({ userId, isOpen, onClose, role }: Profile
                   {profile.website && (
                     <div className="flex items-center gap-2">
                       <Globe className="h-5 w-5 text-muted-foreground" />
-                      <a 
-                        href={profile.website} 
-                        target="_blank" 
+                      <a
+                        href={profile.website}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline"
                       >
@@ -141,9 +145,9 @@ export default function ProfileViewer({ userId, isOpen, onClose, role }: Profile
                   {profile.resumeUrl && (
                     <div>
                       <h3 className="font-semibold mb-2">Resume</h3>
-                      <a 
-                        href={profile.resumeUrl} 
-                        target="_blank" 
+                      <a
+                        href={profile.resumeUrl}
+                        target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline"
                       >
@@ -156,7 +160,7 @@ export default function ProfileViewer({ userId, isOpen, onClose, role }: Profile
             </div>
           ) : (
             <p className="text-muted-foreground py-4">
-              No profile information available. {role === "company" 
+              No profile information available. {role === "company"
                 ? "The company has not created their profile yet."
                 : "The applicant has not created their profile yet."}
             </p>

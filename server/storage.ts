@@ -20,11 +20,10 @@ export interface IStorage {
   updateApplicationStatus(id: number, status: string): Promise<Application | undefined>;
   getApplications(userId: number, role: string): Promise<Application[]>;
 
-  // New profile methods
   getProfile(userId: number): Promise<Profile | undefined>;
   createProfile(userId: number, profile: Partial<InsertProfile>): Promise<Profile>;
   updateProfile(userId: number, profile: Partial<InsertProfile>): Promise<Profile | undefined>;
-  getSalesProfiles(): Promise<Profile[]>; // Added method
+  getSalesProfiles(): Promise<Profile[]>;
 
   sessionStore: session.Store;
 }
@@ -148,12 +147,30 @@ export class DatabaseStorage implements IStorage {
     return updatedProfile;
   }
 
-  async getSalesProfiles() { // Added method
-    return db
-      .select()
+  async getSalesProfiles() {
+    const result = await db
+      .select({
+        id: profiles.id,
+        userId: profiles.userId,
+        headline: profiles.headline,
+        summary: profiles.summary,
+        experience: profiles.experience,
+        education: profiles.education,
+        skills: profiles.skills,
+        achievements: profiles.achievements,
+        website: profiles.website,
+        industry: profiles.industry,
+        companySize: profiles.companySize,
+        foundedYear: profiles.foundedYear,
+        resumeUrl: profiles.resumeUrl,
+        createdAt: profiles.createdAt,
+        updatedAt: profiles.updatedAt,
+      })
       .from(profiles)
       .innerJoin(users, eq(profiles.userId, users.id))
       .where(eq(users.role, "sales"));
+
+    return result;
   }
 }
 
