@@ -179,10 +179,16 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.status(401).send("Unauthorized");
 
     try {
+      console.log('Profile update request received:', { 
+        body: req.body,
+        file: req.file
+      });
+
       const profileData = { ...req.body };
 
       if (req.file) {
         profileData.profilePicture = `/uploads/${req.file.filename}`;
+        console.log('Profile picture uploaded:', profileData.profilePicture);
       }
 
       // Parse array fields from JSON strings
@@ -199,6 +205,7 @@ export function registerRoutes(app: Express): Server {
 
       const parsed = insertProfileSchema.partial().safeParse(profileData);
       if (!parsed.success) {
+        console.error('Profile validation error:', parsed.error);
         return res.status(400).json(parsed.error);
       }
 
@@ -214,10 +221,16 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.status(401).send("Unauthorized");
 
     try {
+      console.log('Profile update request received:', { 
+        body: req.body,
+        file: req.file
+      });
+
       const profileData = { ...req.body };
 
       if (req.file) {
         profileData.profilePicture = `/uploads/${req.file.filename}`;
+        console.log('Profile picture uploaded:', profileData.profilePicture);
       }
 
       // Parse array fields from JSON strings
@@ -234,6 +247,7 @@ export function registerRoutes(app: Express): Server {
 
       const parsed = insertProfileSchema.partial().safeParse(profileData);
       if (!parsed.success) {
+        console.error('Profile validation error:', parsed.error);
         return res.status(400).json(parsed.error);
       }
 

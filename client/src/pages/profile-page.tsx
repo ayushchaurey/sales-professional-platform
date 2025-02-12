@@ -78,8 +78,8 @@ export default function ProfilePage() {
     const formData = new FormData();
 
     // Append profile picture if provided
-    if (data.profilePicture instanceof FileList && data.profilePicture.length > 0) {
-      formData.append("profilePicture", data.profilePicture[0]);
+    if (data.profilePicture instanceof File) {
+      formData.append("profilePicture", data.profilePicture);
     }
 
     // Append other form data
@@ -142,7 +142,7 @@ export default function ProfilePage() {
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
-                                onChange(e.target.files);
+                                onChange(file);
                               }
                             }}
                             {...field}
