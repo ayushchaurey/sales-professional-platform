@@ -1,9 +1,9 @@
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { Job, Application } from "@shared/schema";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import JobCard from "@/components/job-card";
+import CompanyJobView from "@/components/company-job-view";
 import UserNav from "@/components/user-nav";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -70,29 +70,29 @@ export default function HomePage() {
           />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-6">
           {jobs?.map((job) => {
-            // For company users, show each application as a separate card
             if (user?.role === "company" && job.companyId === user.id) {
-              const jobApplications = applicationsByJob?.[job.id] || [];
-              return jobApplications.map((application) => (
-                <JobCard 
-                  key={`${job.id}-${application.id}`}
+              // For company users, show their jobs with all applications
+              return (
+                <CompanyJobView
+                  key={job.id}
                   job={job}
-                  application={application}
+                  applications={applicationsByJob?.[job.id] || []}
+                />
+              );
+            } else if (user?.role === "sales") {
+              // For sales users, show jobs they can apply to
+              return (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  application={applications?.find(a => a.jobId === job.id)}
                   userRole={user.role}
                 />
-              ));
+              );
             }
-            // For sales users, show jobs with their application status
-            return (
-              <JobCard 
-                key={job.id} 
-                job={job}
-                application={applications?.find(a => a.jobId === job.id)}
-                userRole={user.role}
-              />
-            );
+            return null;
           })}
         </div>
       </main>
