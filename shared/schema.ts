@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -9,6 +10,19 @@ export const users = pgTable("users", {
   role: text("role", { enum: ["company", "sales"] }).notNull(),
   name: text("name").notNull(),
   location: text("location").notNull(),
+});
+
+export const profiles = pgTable("profiles", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  headline: text("headline"),
+  summary: text("summary"),
+  experience: text("experience").array(),
+  education: text("education").array(),
+  skills: text("skills").array(),
+  achievements: text("achievements").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const jobs = pgTable("jobs", {
@@ -29,12 +43,37 @@ export const applications = pgTable("applications", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Define relations
+export const usersRelations = relations(users, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [users.id],
+    references: [profiles.userId],
+  }),
+}));
+
+export const profilesRelations = relations(profiles, ({ one }) => ({
+  user: one(users, {
+    fields: [profiles.userId],
+    references: [users.id],
+  }),
+}));
+
+// Schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
   role: true,
   name: true,
   location: true,
+});
+
+export const insertProfileSchema = createInsertSchema(profiles).pick({
+  headline: true,
+  summary: true,
+  experience: true,
+  education: true,
+  skills: true,
+  achievements: true,
 });
 
 export const insertJobSchema = createInsertSchema(jobs).pick({
@@ -47,7 +86,10 @@ export const insertApplicationSchema = createInsertSchema(applications).pick({
   jobId: true,
 });
 
+// Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertProfile = z.infer<typeof insertProfileSchema>;
+export type Profile = typeof profiles.$inferSelect;
 export type Job = typeof jobs.$inferSelect;
 export type Application = typeof applications.$inferSelect;

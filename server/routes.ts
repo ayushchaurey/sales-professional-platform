@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertJobSchema, insertApplicationSchema } from "@shared/schema";
+import { insertJobSchema, insertApplicationSchema, insertProfileSchema } from "@shared/schema";
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
@@ -70,6 +70,50 @@ export function registerRoutes(app: Express): Server {
 
     const applications = await storage.getApplications(req.user.id, req.user.role);
     res.json(applications);
+  });
+
+  // Profiles
+  app.get("/api/profiles/:userId", async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const profile = await storage.getProfile(userId);
+    if (!profile) {
+      return res.status(404).send("Profile not found");
+    }
+    res.json(profile);
+  });
+
+  app.post("/api/profiles", async (req, res) => {
+    if (!req.user) return res.status(401).send("Unauthorized");
+    if (req.user.role !== "sales") {
+      return res.status(403).send("Only sales professionals can create profiles");
+    }
+
+    const parsed = insertProfileSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(parsed.error);
+    }
+
+    const profile = await storage.createProfile(req.user.id, parsed.data);
+    res.status(201).json(profile);
+  });
+
+  app.patch("/api/profiles", async (req, res) => {
+    if (!req.user) return res.status(401).send("Unauthorized");
+    if (req.user.role !== "sales") {
+      return res.status(403).send("Only sales professionals can update profiles");
+    }
+
+    const parsed = insertProfileSchema.partial().safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json(parsed.error);
+    }
+
+    const profile = await storage.updateProfile(req.user.id, parsed.data);
+    if (!profile) {
+      return res.status(404).send("Profile not found");
+    }
+
+    res.json(profile);
   });
 
   const httpServer = createServer(app);

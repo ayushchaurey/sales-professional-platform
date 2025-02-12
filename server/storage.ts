@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
-import { users, jobs, applications } from "@shared/schema";
-import type { User, Job, Application } from "@shared/schema";
+import { users, jobs, applications, profiles } from "@shared/schema";
+import type { User, Job, Application, Profile, InsertProfile } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -19,6 +19,11 @@ export interface IStorage {
   createApplication(app: Omit<Application, "id" | "createdAt" | "status">): Promise<Application>;
   updateApplicationStatus(id: number, status: string): Promise<Application | undefined>;
   getApplications(userId: number, role: string): Promise<Application[]>;
+
+  // New profile methods
+  getProfile(userId: number): Promise<Profile | undefined>;
+  createProfile(userId: number, profile: Partial<InsertProfile>): Promise<Profile>;
+  updateProfile(userId: number, profile: Partial<InsertProfile>): Promise<Profile | undefined>;
 
   sessionStore: session.Store;
 }
@@ -106,6 +111,38 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(applications)
       .where(eq(applications.jobId, jobIds[0])); // TODO: Add support for multiple jobs
+  }
+
+  // Profile methods
+  async getProfile(userId: number) {
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.userId, userId));
+    return profile;
+  }
+
+  async createProfile(userId: number, profile: Partial<InsertProfile>) {
+    const [newProfile] = await db
+      .insert(profiles)
+      .values({
+        userId,
+        ...profile,
+      })
+      .returning();
+    return newProfile;
+  }
+
+  async updateProfile(userId: number, profile: Partial<InsertProfile>) {
+    const [updatedProfile] = await db
+      .update(profiles)
+      .set({
+        ...profile,
+        updatedAt: new Date(),
+      })
+      .where(eq(profiles.userId, userId))
+      .returning();
+    return updatedProfile;
   }
 }
 

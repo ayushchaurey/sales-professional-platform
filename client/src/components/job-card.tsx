@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, Calendar } from "lucide-react";
+import { MapPin, Calendar, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
+import ProfileViewer from "./profile-viewer";
 
 interface JobCardProps {
   job: Job;
@@ -15,6 +17,7 @@ interface JobCardProps {
 
 export default function JobCard({ job, application, userRole }: JobCardProps) {
   const { toast } = useToast();
+  const [showProfile, setShowProfile] = useState(false);
 
   const applyMutation = useMutation({
     mutationFn: async () => {
@@ -84,20 +87,30 @@ export default function JobCard({ job, application, userRole }: JobCardProps) {
         {application && (
           <div className="w-full">
             {userRole === "company" ? (
-              <div className="flex gap-2">
+              <div className="space-y-2 w-full">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => updateStatusMutation.mutate("approved")}
+                    variant={application.status === "approved" ? "default" : "outline"}
+                    className="flex-1"
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    onClick={() => updateStatusMutation.mutate("rejected")}
+                    variant={application.status === "rejected" ? "destructive" : "outline"}
+                    className="flex-1"
+                  >
+                    Reject
+                  </Button>
+                </div>
                 <Button
-                  onClick={() => updateStatusMutation.mutate("approved")}
-                  variant={application.status === "approved" ? "default" : "outline"}
-                  className="flex-1"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setShowProfile(true)}
                 >
-                  Approve
-                </Button>
-                <Button
-                  onClick={() => updateStatusMutation.mutate("rejected")}
-                  variant={application.status === "rejected" ? "destructive" : "outline"}
-                  className="flex-1"
-                >
-                  Reject
+                  <User className="h-4 w-4 mr-2" />
+                  View Profile
                 </Button>
               </div>
             ) : (
@@ -108,6 +121,13 @@ export default function JobCard({ job, application, userRole }: JobCardProps) {
           </div>
         )}
       </CardFooter>
+      {application && (
+        <ProfileViewer
+          userId={application.salesId}
+          isOpen={showProfile}
+          onClose={() => setShowProfile(false)}
+        />
+      )}
     </Card>
   );
 }
