@@ -32,20 +32,26 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/jobs", async (req, res) => {
     if (!req.user) return res.status(401).send("Unauthorized");
 
-    const location = req.query.location as string;
-    let jobs = await storage.getJobs(location);
+    try {
+      const location = req.query.location as string;
+      const jobs = await storage.getJobs(location);
 
-    // If user is a sales professional, filter out jobs they've already been approved for
-    if (req.user.role === "sales") {
-      const userApplications = await storage.getApplications(req.user.id, "sales");
-      const approvedJobIds = userApplications
-        .filter(app => app.status === "approved")
-        .map(app => app.jobId);
+      // If user is a sales professional, filter out jobs they've already been approved for
+      if (req.user.role === "sales") {
+        const userApplications = await storage.getApplications(req.user.id, "sales");
+        const approvedJobIds = userApplications
+          .filter(app => app.status === "approved")
+          .map(app => app.jobId);
 
-      jobs = jobs.filter(job => !approvedJobIds.includes(job.id));
+        const filteredJobs = jobs.filter(job => !approvedJobIds.includes(job.id));
+        return res.json(filteredJobs);
+      }
+
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+      res.status(500).send("Failed to fetch jobs");
     }
-
-    res.json(jobs);
   });
 
   app.post("/api/jobs", async (req, res) => {
@@ -53,16 +59,22 @@ export function registerRoutes(app: Express): Server {
       return res.status(403).send("Only companies can post jobs");
     }
 
-    const parsed = insertJobSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json(parsed.error);
-    }
+    try {
+      const parsed = insertJobSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json(parsed.error);
+      }
 
-    const job = await storage.createJob({
-      ...parsed.data,
-      companyId: req.user.id,
-    });
-    res.status(201).json(job);
+      const job = await storage.createJob({
+        ...parsed.data,
+        companyId: req.user.id,
+        customQuestions: parsed.data.customQuestions || [],
+      });
+      res.status(201).json(job);
+    } catch (error) {
+      console.error("Error creating job:", error);
+      res.status(500).send("Failed to create job");
+    }
   });
 
   // Applications
@@ -71,92 +83,123 @@ export function registerRoutes(app: Express): Server {
       return res.status(403).send("Only sales professionals can apply to jobs");
     }
 
-    const answers = JSON.parse(req.body.answers || '[]');
-    const jobId = parseInt(req.body.jobId);
+    try {
+      const answers = JSON.parse(req.body.answers || '[]');
+      const jobId = parseInt(req.body.jobId);
 
-    const application = await storage.createApplication({
-      jobId,
-      salesId: req.user.id,
-      answers,
-    });
-
-    if (req.file) {
-      await storage.updateProfile(req.user.id, {
-        resumeUrl: `/uploads/${req.file.filename}`,
+      const application = await storage.createApplication({
+        jobId,
+        salesId: req.user.id,
+        answers,
       });
-    }
 
-    res.status(201).json(application);
+      if (req.file) {
+        await storage.updateProfile(req.user.id, {
+          resumeUrl: `/uploads/${req.file.filename}`,
+        });
+      }
+
+      res.status(201).json(application);
+    } catch (error) {
+      console.error("Error creating application:", error);
+      res.status(500).send("Failed to create application");
+    }
   });
 
   app.patch("/api/applications/:id", async (req, res) => {
-    const { status } = req.body;
-    const id = parseInt(req.params.id);
-
     if (!req.user || req.user.role !== "company") {
       return res.status(403).send("Only companies can update application status");
     }
 
-    const application = await storage.updateApplicationStatus(id, status);
-    if (!application) {
-      return res.status(404).send("Application not found");
-    }
+    try {
+      const { status } = req.body;
+      const id = parseInt(req.params.id);
 
-    res.json(application);
+      const application = await storage.updateApplicationStatus(id, status);
+      if (!application) {
+        return res.status(404).send("Application not found");
+      }
+
+      res.json(application);
+    } catch (error) {
+      console.error("Error updating application:", error);
+      res.status(500).send("Failed to update application");
+    }
   });
 
   app.get("/api/applications", async (req, res) => {
     if (!req.user) return res.status(401).send("Unauthorized");
 
-    const applications = await storage.getApplications(req.user.id, req.user.role);
-    res.json(applications);
+    try {
+      const applications = await storage.getApplications(req.user.id, req.user.role);
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      res.status(500).send("Failed to fetch applications");
+    }
   });
 
   // Profiles
   app.get("/api/profiles/:userId", async (req, res) => {
-    const userId = parseInt(req.params.userId);
-    const profile = await storage.getProfile(userId);
-    if (!profile) {
-      return res.status(404).send("Profile not found");
+    try {
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).send("Invalid user ID");
+      }
+
+      const profile = await storage.getProfile(userId);
+      if (!profile) {
+        return res.status(404).send("Profile not found");
+      }
+
+      // Get the user's location as well
+      const user = await storage.getUser(userId);
+      res.json({ ...profile, userLocation: user?.location });
+    } catch (error) {
+      console.error("Error fetching profile:", error);
+      res.status(500).send("Failed to fetch profile");
     }
-    res.json(profile);
   });
 
   app.post("/api/profiles", async (req, res) => {
     if (!req.user) return res.status(401).send("Unauthorized");
-    if (req.user.role !== "sales") {
-      return res.status(403).send("Only sales professionals can create profiles");
-    }
 
-    const parsed = insertProfileSchema.partial().safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json(parsed.error);
-    }
+    try {
+      const parsed = insertProfileSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json(parsed.error);
+      }
 
-    const profile = await storage.createProfile(req.user.id, parsed.data);
-    res.status(201).json(profile);
+      const profile = await storage.createProfile(req.user.id, parsed.data);
+      res.status(201).json(profile);
+    } catch (error) {
+      console.error("Error creating profile:", error);
+      res.status(500).send("Failed to create profile");
+    }
   });
 
   app.patch("/api/profiles", async (req, res) => {
     if (!req.user) return res.status(401).send("Unauthorized");
-    if (req.user.role !== "sales") {
-      return res.status(403).send("Only sales professionals can update profiles");
-    }
 
-    const parsed = insertProfileSchema.partial().safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json(parsed.error);
-    }
+    try {
+      const parsed = insertProfileSchema.partial().safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json(parsed.error);
+      }
 
-    const profile = await storage.updateProfile(req.user.id, parsed.data);
-    if (!profile) {
-      return res.status(404).send("Profile not found");
-    }
+      const profile = await storage.updateProfile(req.user.id, parsed.data);
+      if (!profile) {
+        return res.status(404).send("Profile not found");
+      }
 
-    res.json(profile);
+      res.json(profile);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      res.status(500).send("Failed to update profile");
+    }
   });
 
-  // Update the profiles endpoint to include user data
+  // Get sales profiles for companies
   app.get("/api/profiles/sales", async (req, res) => {
     if (!req.user) return res.status(401).send("Unauthorized");
     if (req.user.role !== "company") {

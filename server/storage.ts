@@ -23,7 +23,7 @@ export interface IStorage {
   getProfile(userId: number): Promise<Profile | undefined>;
   createProfile(userId: number, profile: Partial<InsertProfile>): Promise<Profile>;
   updateProfile(userId: number, profile: Partial<InsertProfile>): Promise<Profile | undefined>;
-  getSalesProfiles(): Promise<Profile[]>;
+  getSalesProfiles(): Promise<(Profile & { location: string })[]>;
 
   sessionStore: session.Store;
 }
@@ -99,7 +99,6 @@ export class DatabaseStorage implements IStorage {
         .where(eq(applications.salesId, userId));
     }
 
-    // For companies, get applications for their jobs
     const companyJobs = await db
       .select()
       .from(jobs)
@@ -115,8 +114,9 @@ export class DatabaseStorage implements IStorage {
       .where(inArray(applications.jobId, jobIds));
   }
 
-  // Profile methods
   async getProfile(userId: number) {
+    if (!userId || isNaN(userId)) return undefined;
+
     const [profile] = await db
       .select()
       .from(profiles)
@@ -165,6 +165,7 @@ export class DatabaseStorage implements IStorage {
         resumeUrl: profiles.resumeUrl,
         createdAt: profiles.createdAt,
         updatedAt: profiles.updatedAt,
+        location: users.location,
       })
       .from(profiles)
       .innerJoin(users, eq(profiles.userId, users.id))
