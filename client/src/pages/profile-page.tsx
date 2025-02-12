@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
+import { Card, CardHeader, CardContent, CardDescription } from "@/components/ui/card";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import UserNav from "@/components/user-nav";
+import { Briefcase, Building2, Users, Calendar } from "lucide-react";
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -37,6 +38,10 @@ export default function ProfilePage() {
       education: [],
       skills: [],
       achievements: [],
+      website: "",
+      industry: "",
+      companySize: "",
+      foundedYear: "",
     },
   });
 
@@ -69,7 +74,12 @@ export default function ProfilePage() {
       <main className="container max-w-3xl mx-auto py-8">
         <Card>
           <CardHeader>
-            <h2 className="text-lg font-semibold">Professional Profile</h2>
+            <h2 className="text-2xl font-semibold">Professional Profile</h2>
+            <CardDescription>
+              {user?.role === "company" 
+                ? "Share information about your company with potential candidates"
+                : "Share your professional experience and skills with potential employers"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
@@ -79,9 +89,12 @@ export default function ProfilePage() {
                   name="headline"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Professional Headline</FormLabel>
+                      <FormLabel>{user?.role === "company" ? "Company Tagline" : "Professional Headline"}</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="e.g., Senior Sales Professional with 5+ years in B2B sales" />
+                        <Input {...field} placeholder={user?.role === "company" 
+                          ? "e.g., Leading Innovation in Technology Solutions"
+                          : "e.g., Senior Sales Professional with 5+ years in B2B sales"} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -93,27 +106,11 @@ export default function ProfilePage() {
                   name="summary"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Professional Summary</FormLabel>
+                      <FormLabel>{user?.role === "company" ? "Company Overview" : "Professional Summary"}</FormLabel>
                       <FormControl>
-                        <Textarea {...field} placeholder="Brief overview of your professional background and key achievements" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="experience"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Work Experience</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          {...field} 
-                          value={field.value?.join('\n')}
-                          onChange={e => field.onChange(e.target.value.split('\n'))}
-                          placeholder="List your work experience (one per line)" 
+                        <Textarea {...field} placeholder={user?.role === "company"
+                          ? "Tell potential candidates about your company's mission, values, and culture"
+                          : "Brief overview of your professional background and key achievements"}
                         />
                       </FormControl>
                       <FormMessage />
@@ -121,62 +118,145 @@ export default function ProfilePage() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="education"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Education</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          {...field}
-                          value={field.value?.join('\n')}
-                          onChange={e => field.onChange(e.target.value.split('\n'))}
-                          placeholder="List your education (one per line)" 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {user?.role === "company" ? (
+                  // Company-specific fields
+                  <div className="grid gap-6">
+                    <FormField
+                      control={form.control}
+                      name="website"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Company Website</FormLabel>
+                          <FormControl>
+                            <Input {...field} type="url" placeholder="https://www.example.com" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="skills"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Skills</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          {...field}
-                          value={field.value?.join('\n')}
-                          onChange={e => field.onChange(e.target.value.split('\n'))}
-                          placeholder="List your skills (one per line)" 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="industry"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Industry</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., Technology, Healthcare, Finance" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="achievements"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Achievements</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          {...field}
-                          value={field.value?.join('\n')}
-                          onChange={e => field.onChange(e.target.value.split('\n'))}
-                          placeholder="List your achievements (one per line)" 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                    <FormField
+                      control={form.control}
+                      name="companySize"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Company Size</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 50-100 employees" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="foundedYear"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Founded Year</FormLabel>
+                          <FormControl>
+                            <Input {...field} placeholder="e.g., 2010" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                ) : (
+                  // Sales professional fields
+                  <div className="space-y-6">
+                    <FormField
+                      control={form.control}
+                      name="experience"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Work Experience</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field} 
+                              value={field.value?.join('\n')}
+                              onChange={e => field.onChange(e.target.value.split('\n'))}
+                              placeholder="List your work experience (one per line)" 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="education"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Education</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field}
+                              value={field.value?.join('\n')}
+                              onChange={e => field.onChange(e.target.value.split('\n'))}
+                              placeholder="List your education (one per line)" 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="skills"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Skills</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field}
+                              value={field.value?.join('\n')}
+                              onChange={e => field.onChange(e.target.value.split('\n'))}
+                              placeholder="List your skills (one per line)" 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="achievements"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Achievements</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field}
+                              value={field.value?.join('\n')}
+                              onChange={e => field.onChange(e.target.value.split('\n'))}
+                              placeholder="List your achievements (one per line)" 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                )}
 
                 <Button type="submit" className="w-full" disabled={mutation.isPending}>
                   Save Profile

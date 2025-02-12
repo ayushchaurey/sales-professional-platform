@@ -8,15 +8,16 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
+import { Loader2, Globe, Building2, Users, Calendar } from "lucide-react";
 
 interface ProfileViewerProps {
   userId: number;
   isOpen: boolean;
   onClose: () => void;
+  role?: "company" | "sales";
 }
 
-export default function ProfileViewer({ userId, isOpen, onClose }: ProfileViewerProps) {
+export default function ProfileViewer({ userId, isOpen, onClose, role }: ProfileViewerProps) {
   const { data: profile, isLoading } = useQuery<Profile>({
     queryKey: [`/api/profiles/${userId}`],
     queryFn: async () => {
@@ -36,9 +37,11 @@ export default function ProfileViewer({ userId, isOpen, onClose }: ProfileViewer
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Applicant Profile</DialogTitle>
+          <DialogTitle>{role === "company" ? "Company Profile" : "Professional Profile"}</DialogTitle>
           <DialogDescription>
-            Review the applicant's professional background and experience
+            {role === "company" 
+              ? "Learn more about this company"
+              : "Review the applicant's professional background and experience"}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="max-h-[80vh] px-1">
@@ -49,68 +52,113 @@ export default function ProfileViewer({ userId, isOpen, onClose }: ProfileViewer
           ) : profile ? (
             <div className="space-y-6">
               <div>
-                <h3 className="font-semibold mb-2">Professional Headline</h3>
+                <h3 className="font-semibold mb-2">{role === "company" ? "Company Tagline" : "Professional Headline"}</h3>
                 <p className="text-muted-foreground">{profile.headline}</p>
               </div>
 
               <div>
-                <h3 className="font-semibold mb-2">Professional Summary</h3>
+                <h3 className="font-semibold mb-2">{role === "company" ? "Company Overview" : "Professional Summary"}</h3>
                 <p className="text-muted-foreground whitespace-pre-wrap">{profile.summary}</p>
               </div>
 
-              <div>
-                <h3 className="font-semibold mb-2">Work Experience</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  {profile.experience?.map((exp, i) => (
-                    <li key={i} className="text-muted-foreground">{exp}</li>
-                  ))}
-                </ul>
-              </div>
+              {role === "company" ? (
+                // Company-specific information
+                <div className="grid gap-6">
+                  {profile.website && (
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-5 w-5 text-muted-foreground" />
+                      <a 
+                        href={profile.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        Company Website
+                      </a>
+                    </div>
+                  )}
 
-              <div>
-                <h3 className="font-semibold mb-2">Education</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  {profile.education?.map((edu, i) => (
-                    <li key={i} className="text-muted-foreground">{edu}</li>
-                  ))}
-                </ul>
-              </div>
+                  {profile.industry && (
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-muted-foreground" />
+                      <span>{profile.industry}</span>
+                    </div>
+                  )}
 
-              <div>
-                <h3 className="font-semibold mb-2">Skills</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  {profile.skills?.map((skill, i) => (
-                    <li key={i} className="text-muted-foreground">{skill}</li>
-                  ))}
-                </ul>
-              </div>
+                  {profile.companySize && (
+                    <div className="flex items-center gap-2">
+                      <Users className="h-5 w-5 text-muted-foreground" />
+                      <span>{profile.companySize} employees</span>
+                    </div>
+                  )}
 
-              <div>
-                <h3 className="font-semibold mb-2">Achievements</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  {profile.achievements?.map((achievement, i) => (
-                    <li key={i} className="text-muted-foreground">{achievement}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {profile.resumeUrl && (
-                <div>
-                  <h3 className="font-semibold mb-2">Resume</h3>
-                  <a 
-                    href={profile.resumeUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    View Resume
-                  </a>
+                  {profile.foundedYear && (
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5 text-muted-foreground" />
+                      <span>Founded in {profile.foundedYear}</span>
+                    </div>
+                  )}
                 </div>
+              ) : (
+                // Sales professional information
+                <>
+                  <div>
+                    <h3 className="font-semibold mb-2">Work Experience</h3>
+                    <ul className="list-disc list-inside space-y-1">
+                      {profile.experience?.map((exp, i) => (
+                        <li key={i} className="text-muted-foreground">{exp}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-2">Education</h3>
+                    <ul className="list-disc list-inside space-y-1">
+                      {profile.education?.map((edu, i) => (
+                        <li key={i} className="text-muted-foreground">{edu}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-2">Skills</h3>
+                    <ul className="list-disc list-inside space-y-1">
+                      {profile.skills?.map((skill, i) => (
+                        <li key={i} className="text-muted-foreground">{skill}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-2">Achievements</h3>
+                    <ul className="list-disc list-inside space-y-1">
+                      {profile.achievements?.map((achievement, i) => (
+                        <li key={i} className="text-muted-foreground">{achievement}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {profile.resumeUrl && (
+                    <div>
+                      <h3 className="font-semibold mb-2">Resume</h3>
+                      <a 
+                        href={profile.resumeUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        View Resume
+                      </a>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ) : (
             <p className="text-muted-foreground py-4">
-              No profile information available. The applicant has not created their profile yet.
+              No profile information available. {role === "company" 
+                ? "The company has not created their profile yet."
+                : "The applicant has not created their profile yet."}
             </p>
           )}
         </ScrollArea>
