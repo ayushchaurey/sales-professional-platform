@@ -24,22 +24,41 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { HandshakeIcon } from "lucide-react";
 
+type LoginFormData = Pick<InsertUser, "username" | "password">;
+type RegisterFormData = InsertUser;
+
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
 
-  if (user) {
-    setLocation("/");
-    return null;
-  }
-
-  const loginForm = useForm({
-    resolver: zodResolver(insertUserSchema.pick({ username: true, password: true })),
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(
+      insertUserSchema.pick({ 
+        username: true, 
+        password: true 
+      })
+    ),
+    defaultValues: {
+      username: "",
+      password: ""
+    }
   });
 
-  const registerForm = useForm({
+  const registerForm = useForm<RegisterFormData>({
     resolver: zodResolver(insertUserSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+      role: "company",
+      name: "",
+      location: ""
+    }
   });
+
+  // Move location change to an effect to avoid hook violations
+  if (user) {
+    setTimeout(() => setLocation("/"), 0);
+  }
 
   return (
     <div className="min-h-screen grid md:grid-cols-2">
@@ -57,7 +76,7 @@ export default function AuthPage() {
                 <TabsTrigger value="login">Login</TabsTrigger>
                 <TabsTrigger value="register">Register</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="login">
                 <Form {...loginForm}>
                   <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))}>
@@ -109,7 +128,7 @@ export default function AuthPage() {
                             <FormControl>
                               <RadioGroup
                                 onValueChange={field.onChange}
-                                defaultValue={field.value}
+                                value={field.value}
                                 className="flex space-x-4"
                               >
                                 <div className="flex items-center space-x-2">
