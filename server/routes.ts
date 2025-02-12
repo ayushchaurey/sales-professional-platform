@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { insertJobSchema, insertApplicationSchema, insertProfileSchema } from "@shared/schema";
 import multer from "multer";
 import path from "path";
+import express from "express";
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -27,6 +28,9 @@ const upload = multer({
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
+
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   // Jobs
   app.get("/api/jobs", async (req, res) => {
