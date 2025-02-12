@@ -58,7 +58,7 @@ export default function ApplicationForm({ job, isOpen, onClose }: ApplicationFor
     const formData = new FormData();
     formData.append("jobId", job.id.toString());
     formData.append("answers", JSON.stringify(data.answers));
-    
+
     if (data.resume?.[0]) {
       formData.append("resume", data.resume[0]);
     }
@@ -74,30 +74,29 @@ export default function ApplicationForm({ job, isOpen, onClose }: ApplicationFor
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="resume"
-              render={({ field: { onChange, ...field } }) => (
-                <FormItem>
-                  <FormLabel>Resume</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={(e) => onChange(e.target.files)}
-                        {...field}
-                      />
-                      <Button type="button" variant="outline" onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Upload
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormItem>
+              <FormLabel>Resume</FormLabel>
+              <FormControl>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={(e) => {
+                      form.setValue("resume", e.target.files);
+                    }}
+                  />
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Upload
+                  </Button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
 
             {job.customQuestions?.map((question, index) => (
               <FormField
