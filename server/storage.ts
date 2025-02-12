@@ -1,107 +1,112 @@
-import { IStorage } from "./storage";
-import createMemoryStore from "memorystore";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 import session from "express-session";
-import { User, Job, Application } from "@shared/schema";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
+import { users, jobs, applications } from "@shared/schema";
+import type { User, Job, Application } from "@shared/schema";
 
-const MemoryStore = createMemoryStore(session);
+const PostgresSessionStore = connectPg(session);
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: Omit<User, "id">): Promise<User>;
-  
+
   getJobs(location?: string): Promise<Job[]>;
   createJob(job: Omit<Job, "id" | "createdAt" | "status">): Promise<Job>;
-  
+
   createApplication(app: Omit<Application, "id" | "createdAt" | "status">): Promise<Application>;
   updateApplicationStatus(id: number, status: string): Promise<Application | undefined>;
   getApplications(userId: number, role: string): Promise<Application[]>;
-  
+
   sessionStore: session.Store;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private jobs: Map<number, Job>;
-  private applications: Map<number, Application>;
-  private currentIds: { users: number; jobs: number; applications: number };
+export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.users = new Map();
-    this.jobs = new Map();
-    this.applications = new Map();
-    this.currentIds = { users: 1, jobs: 1, applications: 1 };
-    this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000,
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true,
     });
   }
 
   async getUser(id: number) {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string) {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
   }
 
   async createUser(user: Omit<User, "id">) {
-    const id = this.currentIds.users++;
-    const newUser = { ...user, id };
-    this.users.set(id, newUser);
+    const [newUser] = await db.insert(users).values(user).returning();
     return newUser;
   }
 
   async getJobs(location?: string) {
-    const jobs = Array.from(this.jobs.values());
     if (location) {
-      return jobs.filter(job => job.location === location);
+      return db.select().from(jobs).where(eq(jobs.location, location));
     }
-    return jobs;
+    return db.select().from(jobs);
   }
 
   async createJob(job: Omit<Job, "id" | "createdAt" | "status">) {
-    const id = this.currentIds.jobs++;
-    const newJob = {
-      ...job,
-      id,
-      status: "open",
-      createdAt: new Date(),
-    };
-    this.jobs.set(id, newJob);
+    const [newJob] = await db
+      .insert(jobs)
+      .values({
+        ...job,
+        status: "open",
+      })
+      .returning();
     return newJob;
   }
 
   async createApplication(app: Omit<Application, "id" | "createdAt" | "status">) {
-    const id = this.currentIds.applications++;
-    const newApp = {
-      ...app,
-      id,
-      status: "pending",
-      createdAt: new Date(),
-    };
-    this.applications.set(id, newApp);
+    const [newApp] = await db
+      .insert(applications)
+      .values({
+        ...app,
+        status: "pending",
+      })
+      .returning();
     return newApp;
   }
 
-  async updateApplicationStatus(id: number, status: string) {
-    const app = this.applications.get(id);
-    if (!app) return undefined;
-    
-    const updated = { ...app, status };
-    this.applications.set(id, updated);
-    return updated;
+  async updateApplicationStatus(id: number, status: "pending" | "approved" | "rejected") {
+    const [updatedApp] = await db
+      .update(applications)
+      .set({ status })
+      .where(eq(applications.id, id))
+      .returning();
+    return updatedApp;
   }
 
   async getApplications(userId: number, role: string) {
-    return Array.from(this.applications.values()).filter(app => {
-      if (role === "sales") return app.salesId === userId;
-      const job = this.jobs.get(app.jobId);
-      return job?.companyId === userId;
-    });
+    if (role === "sales") {
+      return db
+        .select()
+        .from(applications)
+        .where(eq(applications.salesId, userId));
+    }
+
+    // For companies, get applications for their jobs
+    const companyJobs = await db
+      .select()
+      .from(jobs)
+      .where(eq(jobs.companyId, userId));
+
+    const jobIds = companyJobs.map(job => job.id);
+
+    return db
+      .select()
+      .from(applications)
+      .where(eq(applications.jobId, jobIds[0])); // TODO: Add support for multiple jobs
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
