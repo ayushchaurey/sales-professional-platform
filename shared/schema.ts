@@ -87,7 +87,12 @@ export const insertProfileSchema = createInsertSchema(profiles).pick({
   industry: true,
   companySize: true,
   foundedYear: true,
-  profilePicture: true,
+}).extend({
+  profilePicture: z.any().optional(),
+  experience: z.array(z.string()).optional(),
+  education: z.array(z.string()).optional(),
+  skills: z.array(z.string()).optional(),
+  achievements: z.array(z.string()).optional(),
 });
 
 export const insertJobSchema = createInsertSchema(jobs).pick({
