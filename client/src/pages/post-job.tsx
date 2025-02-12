@@ -18,22 +18,32 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import UserNav from "@/components/user-nav";
+import { useState } from "react";
+import { Plus, X } from "lucide-react";
 
 export default function PostJob() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [questions, setQuestions] = useState<string[]>([""]);
 
   const form = useForm({
     resolver: zodResolver(insertJobSchema),
     defaultValues: {
       location: user?.location || "",
+      title: "",
+      description: "",
+      customQuestions: [],
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (data: any) => {
-      const res = await apiRequest("POST", "/api/jobs", data);
+      const formData = {
+        ...data,
+        customQuestions: questions.filter(q => q.trim() !== ""),
+      };
+      const res = await apiRequest("POST", "/api/jobs", formData);
       return res.json();
     },
     onSuccess: () => {
@@ -51,6 +61,20 @@ export default function PostJob() {
       });
     },
   });
+
+  const addQuestion = () => {
+    setQuestions([...questions, ""]);
+  };
+
+  const removeQuestion = (index: number) => {
+    setQuestions(questions.filter((_, i) => i !== index));
+  };
+
+  const updateQuestion = (index: number, value: string) => {
+    const newQuestions = [...questions];
+    newQuestions[index] = value;
+    setQuestions(newQuestions);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -105,6 +129,39 @@ export default function PostJob() {
                 </FormItem>
               )}
             />
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <FormLabel>Custom Questions for Applicants</FormLabel>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addQuestion}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Question
+                </Button>
+              </div>
+              {questions.map((question, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={question}
+                    onChange={(e) => updateQuestion(index, e.target.value)}
+                    placeholder="Enter your question here"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeQuestion(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
             <Button type="submit" className="w-full" disabled={mutation.isPending}>
               Post Job
             </Button>

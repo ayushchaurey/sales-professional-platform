@@ -21,6 +21,7 @@ export const profiles = pgTable("profiles", {
   education: text("education").array(),
   skills: text("skills").array(),
   achievements: text("achievements").array(),
+  resumeUrl: text("resume_url"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -32,6 +33,7 @@ export const jobs = pgTable("jobs", {
   location: text("location").notNull(),
   companyId: integer("company_id").notNull(),
   status: text("status", { enum: ["open", "closed"] }).default("open"),
+  customQuestions: text("custom_questions").array(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -40,10 +42,11 @@ export const applications = pgTable("applications", {
   jobId: integer("job_id").notNull(),
   salesId: integer("sales_id").notNull(),
   status: text("status", { enum: ["pending", "approved", "rejected"] }).default("pending"),
+  answers: text("answers").array(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-// Define relations
+// Relations
 export const usersRelations = relations(users, ({ one }) => ({
   profile: one(profiles, {
     fields: [users.id],
@@ -74,16 +77,19 @@ export const insertProfileSchema = createInsertSchema(profiles).pick({
   education: true,
   skills: true,
   achievements: true,
+  resumeUrl: true,
 });
 
 export const insertJobSchema = createInsertSchema(jobs).pick({
   title: true,
   description: true,
   location: true,
+  customQuestions: true,
 });
 
 export const insertApplicationSchema = createInsertSchema(applications).pick({
   jobId: true,
+  answers: true,
 });
 
 // Types

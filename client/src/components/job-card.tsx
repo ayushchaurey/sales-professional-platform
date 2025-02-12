@@ -8,6 +8,7 @@ import { MapPin, Calendar, User } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 import ProfileViewer from "./profile-viewer";
+import ApplicationForm from "./application-form";
 
 interface JobCardProps {
   job: Job;
@@ -18,27 +19,7 @@ interface JobCardProps {
 export default function JobCard({ job, application, userRole }: JobCardProps) {
   const { toast } = useToast();
   const [showProfile, setShowProfile] = useState(false);
-
-  const applyMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/applications", { jobId: job.id });
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/applications"] });
-      toast({
-        title: "Application Submitted",
-        description: "Your application has been submitted successfully.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
 
   const updateStatusMutation = useMutation({
     mutationFn: async (status: string) => {
@@ -77,8 +58,7 @@ export default function JobCard({ job, application, userRole }: JobCardProps) {
       <CardFooter>
         {userRole === "sales" && !application && (
           <Button 
-            onClick={() => applyMutation.mutate()} 
-            disabled={applyMutation.isPending}
+            onClick={() => setShowApplicationForm(true)} 
             className="w-full"
           >
             Apply Now
@@ -128,6 +108,11 @@ export default function JobCard({ job, application, userRole }: JobCardProps) {
           onClose={() => setShowProfile(false)}
         />
       )}
+      <ApplicationForm
+        job={job}
+        isOpen={showApplicationForm}
+        onClose={() => setShowApplicationForm(false)}
+      />
     </Card>
   );
 }

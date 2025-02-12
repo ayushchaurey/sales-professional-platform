@@ -3,14 +3,48 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
 import { insertJobSchema, insertApplicationSchema, insertProfileSchema } from "@shared/schema";
+import multer from "multer";
+import path from "path";
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: "./uploads",
+    filename: (req, file, cb) => {
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+      cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+    }
+  }),
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = ['.pdf', '.doc', '.docx'];
+    const ext = path.extname(file.originalname);
+    if (allowedTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type'));
+    }
+  }
+});
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Jobs
   app.get("/api/jobs", async (req, res) => {
+    if (!req.user) return res.status(401).send("Unauthorized");
+
     const location = req.query.location as string;
-    const jobs = await storage.getJobs(location);
+    let jobs = await storage.getJobs(location);
+
+    // If user is a sales professional, filter out jobs they've already been approved for
+    if (req.user.role === "sales") {
+      const userApplications = await storage.getApplications(req.user.id, "sales");
+      const approvedJobIds = userApplications
+        .filter(app => app.status === "approved")
+        .map(app => app.jobId);
+
+      jobs = jobs.filter(job => !approvedJobIds.includes(job.id));
+    }
+
     res.json(jobs);
   });
 
@@ -32,20 +66,26 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Applications
-  app.post("/api/applications", async (req, res) => {
+  app.post("/api/applications", upload.single('resume'), async (req, res) => {
     if (!req.user || req.user.role !== "sales") {
       return res.status(403).send("Only sales professionals can apply to jobs");
     }
 
-    const parsed = insertApplicationSchema.safeParse(req.body);
-    if (!parsed.success) {
-      return res.status(400).json(parsed.error);
-    }
+    const answers = JSON.parse(req.body.answers || '[]');
+    const jobId = parseInt(req.body.jobId);
 
     const application = await storage.createApplication({
-      ...parsed.data,
+      jobId,
       salesId: req.user.id,
+      answers,
     });
+
+    if (req.file) {
+      await storage.updateProfile(req.user.id, {
+        resumeUrl: `/uploads/${req.file.filename}`,
+      });
+    }
+
     res.status(201).json(application);
   });
 
