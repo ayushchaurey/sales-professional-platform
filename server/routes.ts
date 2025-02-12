@@ -6,10 +6,17 @@ import { insertJobSchema, insertApplicationSchema, insertProfileSchema } from "@
 import multer from "multer";
 import path from "path";
 import express from "express";
+import fs from "fs";
+
+// Ensure uploads directory exists
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 const upload = multer({
   storage: multer.diskStorage({
-    destination: "./uploads",
+    destination: uploadsDir,
     filename: (req, file, cb) => {
       const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
       cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
@@ -17,12 +24,15 @@ const upload = multer({
   }),
   fileFilter: (_req, file, cb) => {
     const allowedTypes = ['.jpg', '.jpeg', '.png', '.gif'];
-    const ext = path.extname(file.originalname);
-    if (allowedTypes.includes(ext.toLowerCase())) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedTypes.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type'));
+      cb(new Error(`Invalid file type. Allowed types: ${allowedTypes.join(', ')}`));
     }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
   }
 });
 
@@ -30,7 +40,7 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Serve static files from uploads directory
-  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+  app.use('/uploads', express.static(uploadsDir));
 
   // Jobs
   app.get("/api/jobs", async (req, res) => {
@@ -169,7 +179,8 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.status(401).send("Unauthorized");
 
     try {
-      const profileData = req.body;
+      const profileData = { ...req.body };
+
       if (req.file) {
         profileData.profilePicture = `/uploads/${req.file.filename}`;
       }
@@ -181,6 +192,7 @@ export function registerRoutes(app: Express): Server {
             profileData[field] = JSON.parse(profileData[field]);
           } catch (e) {
             console.error(`Error parsing ${field}:`, e);
+            profileData[field] = [];
           }
         }
       });
@@ -202,7 +214,8 @@ export function registerRoutes(app: Express): Server {
     if (!req.user) return res.status(401).send("Unauthorized");
 
     try {
-      const profileData = req.body;
+      const profileData = { ...req.body };
+
       if (req.file) {
         profileData.profilePicture = `/uploads/${req.file.filename}`;
       }
@@ -214,6 +227,7 @@ export function registerRoutes(app: Express): Server {
             profileData[field] = JSON.parse(profileData[field]);
           } catch (e) {
             console.error(`Error parsing ${field}:`, e);
+            profileData[field] = [];
           }
         }
       });

@@ -78,7 +78,7 @@ export default function ProfilePage() {
     const formData = new FormData();
 
     // Append profile picture if provided
-    if (data.profilePicture?.[0]) {
+    if (data.profilePicture instanceof FileList && data.profilePicture.length > 0) {
       formData.append("profilePicture", data.profilePicture[0]);
     }
 
@@ -86,7 +86,7 @@ export default function ProfilePage() {
     Object.entries(data).forEach(([key, value]) => {
       if (key !== "profilePicture") {
         if (Array.isArray(value)) {
-          formData.append(key, JSON.stringify(value));
+          formData.append(key, JSON.stringify(value.filter(Boolean)));
         } else if (value !== undefined && value !== null) {
           formData.append(key, value.toString());
         }
