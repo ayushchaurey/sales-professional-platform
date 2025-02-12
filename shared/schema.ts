@@ -26,6 +26,7 @@ export const profiles = pgTable("profiles", {
   companySize: text("company_size"),
   foundedYear: text("founded_year"),
   resumeUrl: text("resume_url"),
+  profilePicture: text("profile_picture"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -86,6 +87,7 @@ export const insertProfileSchema = createInsertSchema(profiles).pick({
   industry: true,
   companySize: true,
   foundedYear: true,
+  profilePicture: true,
 });
 
 export const insertJobSchema = createInsertSchema(jobs).pick({

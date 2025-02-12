@@ -15,9 +15,9 @@ const upload = multer({
     }
   }),
   fileFilter: (_req, file, cb) => {
-    const allowedTypes = ['.pdf', '.doc', '.docx'];
+    const allowedTypes = ['.jpg', '.jpeg', '.png', '.gif'];
     const ext = path.extname(file.originalname);
-    if (allowedTypes.includes(ext)) {
+    if (allowedTypes.includes(ext.toLowerCase())) {
       cb(null, true);
     } else {
       cb(new Error('Invalid file type'));
@@ -161,11 +161,27 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post("/api/profiles", async (req, res) => {
+  app.post("/api/profiles", upload.single('profilePicture'), async (req, res) => {
     if (!req.user) return res.status(401).send("Unauthorized");
 
     try {
-      const parsed = insertProfileSchema.partial().safeParse(req.body);
+      const profileData = req.body;
+      if (req.file) {
+        profileData.profilePicture = `/uploads/${req.file.filename}`;
+      }
+
+      // Parse array fields from JSON strings
+      ['experience', 'education', 'skills', 'achievements'].forEach(field => {
+        if (profileData[field]) {
+          try {
+            profileData[field] = JSON.parse(profileData[field]);
+          } catch (e) {
+            console.error(`Error parsing ${field}:`, e);
+          }
+        }
+      });
+
+      const parsed = insertProfileSchema.partial().safeParse(profileData);
       if (!parsed.success) {
         return res.status(400).json(parsed.error);
       }
@@ -178,11 +194,27 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.patch("/api/profiles", async (req, res) => {
+  app.patch("/api/profiles", upload.single('profilePicture'), async (req, res) => {
     if (!req.user) return res.status(401).send("Unauthorized");
 
     try {
-      const parsed = insertProfileSchema.partial().safeParse(req.body);
+      const profileData = req.body;
+      if (req.file) {
+        profileData.profilePicture = `/uploads/${req.file.filename}`;
+      }
+
+      // Parse array fields from JSON strings
+      ['experience', 'education', 'skills', 'achievements'].forEach(field => {
+        if (profileData[field]) {
+          try {
+            profileData[field] = JSON.parse(profileData[field]);
+          } catch (e) {
+            console.error(`Error parsing ${field}:`, e);
+          }
+        }
+      });
+
+      const parsed = insertProfileSchema.partial().safeParse(profileData);
       if (!parsed.success) {
         return res.status(400).json(parsed.error);
       }

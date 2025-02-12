@@ -19,10 +19,15 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import UserNav from "@/components/user-nav";
 import { Briefcase, Building2, Users, Calendar } from "lucide-react";
+import { useState } from "react";
+import { useLocation } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 export default function ProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
 
   const { data: profile } = useQuery<Profile>({
     queryKey: [`/api/profiles/${user?.id}`],
@@ -42,23 +47,54 @@ export default function ProfilePage() {
       industry: profile?.industry ?? "",
       companySize: profile?.companySize ?? "",
       foundedYear: profile?.foundedYear ?? "",
+      profilePicture: profile?.profilePicture ?? "",
     },
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: Partial<Profile>) => {
+    mutationFn: async (data: FormData) => {
       const method = profile ? "PATCH" : "POST";
-      const res = await apiRequest(method, "/api/profiles", data);
+      const res = await fetch("/api/profiles", {
+        method,
+        body: data,
+      });
+      if (!res.ok) throw new Error("Failed to update profile");
       return res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/profiles/${user?.id}`] });
+      setShowSuccessDialog(true);
+    },
+    onError: (error: Error) => {
       toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated.",
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });
+
+  const onSubmit = async (data: any) => {
+    const formData = new FormData();
+
+    // Append profile picture if provided
+    if (data.profilePicture?.[0]) {
+      formData.append("profilePicture", data.profilePicture[0]);
+    }
+
+    // Append other form data
+    Object.entries(data).forEach(([key, value]) => {
+      if (key !== "profilePicture") {
+        if (Array.isArray(value)) {
+          formData.append(key, JSON.stringify(value));
+        } else if (value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      }
+    });
+
+    mutation.mutate(formData);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -76,14 +112,48 @@ export default function ProfilePage() {
           <CardHeader>
             <h2 className="text-2xl font-semibold">Professional Profile</h2>
             <CardDescription>
-              {user?.role === "company" 
+              {user?.role === "company"
                 ? "Share information about your company with potential candidates"
                 : "Share your professional experience and skills with potential employers"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                {/* Profile Picture Upload */}
+                <FormField
+                  control={form.control}
+                  name="profilePicture"
+                  render={({ field: { onChange, value, ...field } }) => (
+                    <FormItem>
+                      <FormLabel>Profile Picture</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center gap-4">
+                          {profile?.profilePicture && (
+                            <img
+                              src={profile.profilePicture}
+                              alt="Profile"
+                              className="h-20 w-20 rounded-full object-cover"
+                            />
+                          )}
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                onChange(e.target.files);
+                              }
+                            }}
+                            {...field}
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="headline"
@@ -91,9 +161,9 @@ export default function ProfilePage() {
                     <FormItem>
                       <FormLabel>{user?.role === "company" ? "Company Tagline" : "Professional Headline"}</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder={user?.role === "company" 
+                        <Input {...field} placeholder={user?.role === "company"
                           ? "e.g., Leading Innovation in Technology Solutions"
-                          : "e.g., Senior Sales Professional with 5+ years in B2B sales"} 
+                          : "e.g., Senior Sales Professional with 5+ years in B2B sales"}
                         />
                       </FormControl>
                       <FormMessage />
@@ -187,11 +257,11 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Work Experience</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <Textarea
                               {...field}
                               value={value.join('\n')}
                               onChange={e => onChange(e.target.value.split('\n'))}
-                              placeholder="List your work experience (one per line)" 
+                              placeholder="List your work experience (one per line)"
                             />
                           </FormControl>
                           <FormMessage />
@@ -206,11 +276,11 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Education</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <Textarea
                               {...field}
                               value={value.join('\n')}
                               onChange={e => onChange(e.target.value.split('\n'))}
-                              placeholder="List your education (one per line)" 
+                              placeholder="List your education (one per line)"
                             />
                           </FormControl>
                           <FormMessage />
@@ -225,11 +295,11 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Skills</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <Textarea
                               {...field}
                               value={value.join('\n')}
                               onChange={e => onChange(e.target.value.split('\n'))}
-                              placeholder="List your skills (one per line)" 
+                              placeholder="List your skills (one per line)"
                             />
                           </FormControl>
                           <FormMessage />
@@ -244,11 +314,11 @@ export default function ProfilePage() {
                         <FormItem>
                           <FormLabel>Achievements</FormLabel>
                           <FormControl>
-                            <Textarea 
+                            <Textarea
                               {...field}
                               value={value.join('\n')}
                               onChange={e => onChange(e.target.value.split('\n'))}
-                              placeholder="List your achievements (one per line)" 
+                              placeholder="List your achievements (one per line)"
                             />
                           </FormControl>
                           <FormMessage />
@@ -266,6 +336,20 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
       </main>
+
+      <Dialog open={showSuccessDialog} onOpenChange={setShowSuccessDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Profile Updated</DialogTitle>
+            <DialogDescription>
+              Your profile has been successfully updated.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setLocation("/")}>Back to Home</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
